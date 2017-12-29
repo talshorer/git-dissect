@@ -20,11 +20,13 @@ Start as you would start a normal bisect:
     $ git bisect start --no-checkout
     $ git bisect bad $BAD_COMMIT
     $ git bisect good $GOOD_COMMIT
-Note: It is recommended to start `git bisect` with the `--no-checkout` option when using `git-dissect`.
+Note: It is recommended to start `git bisect` with the `--no-checkout` option
+when using `git-dissect`.
 
 ### Configuration
 `git-dissect` uses a JSON configuration to manage its hosts.  
-The configuration is a JSON object, where each key is of the form `"user@hostname"` and each value is of the form `"/path/to/repository/on/host"`.  
+The configuration is a JSON object, where each key is of the form
+`"user@hostname"` and each value is of the form `"/path/to/repository/on/host"`.  
 For example:
 ```
 {
@@ -38,7 +40,10 @@ For example:
   "root@20.0.7.2": "/tmp/dissect-example"
 }
 ```
-To set the configuration file, use `git dissect config`.
+To set the configuration file, use `git dissect config`.  
+Note: In order for `fabric` to work properly, the user must be able to log in
+to the hosts via SSH using a public key.
+
 ### `git-dissect` commands:
 
 Command | Description
