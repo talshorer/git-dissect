@@ -55,13 +55,22 @@ Command | Description
 `git dissect collect <cmd>` | Run `<cmd>` on all hosts and use the exit code to determine if a commit is good or bad.
 `git dissect step <cmd>` | Equivalent to running `git dissect checkout; git dissect collect <cmd>`.
 `git dissect run <cmd>` | Equivalent to running `git dissect step <cmd>` until the bad commit is found.
+`git dissect signal {wait\|good\|bad}` | See "Manual mode" below.
+
+### Manual mode
+
+When not supplying a command to `git dissect {execute|collect|step|run}`,
+`git-dissect` will run in "manual mode".  
+The actual command that's executed on the hosts is `git dissect signal wait`,
+which waits for the user to invoke `git dissect signal {good|bad}` _on the host_
+to indicate whether the checked out commit is good or bad. Execution of
+`git-dissect` then continues normally as if the remote command succeeded or
+failed as indicated by the user.  
+This is equivalent to calling `git bisect {good|bad}` after running tests manually.
 
 ## Future
 
 * Better handling of error conditions.
-* Allow not supplying a command where one is expected to support "manual mode":
-  * `git-dissect` will run a tool that waits for the user to decide whether a commit is good or bad.
-  * The user will invoke a tool _on the host_ to signal whether the commit was good or bad.
 * Manage the hosts configuration in `git-dissect` itself. Implement an easy way to add/remove hosts.
 * Add a proper python `setup.py` script to manage installation.
 * Allow running on the same host in multiple paths/worktrees.
