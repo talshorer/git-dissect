@@ -6,8 +6,9 @@ This is achieved by utilizing python's `fabric` library.
 It was inspired by Rob Hoelz's [git-pisect](https://github.com/hoelzro/git-pisect).
 
 ## Installation
-    $ pip3 install fabric3 gitpython
+    $ sudo pip3 install fabric3 gitpython
     $ wget https://raw.githubusercontent.com/talshorer/git-dissect/master/git-dissect.py
+    $ chmod +x git-dissect.py
     $ # Install for the current user only
     $ git config --global alias.dissect '!'$(realpath git-dissect.py)
     $ # Install for everyone using the system
