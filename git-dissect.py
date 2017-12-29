@@ -1,9 +1,12 @@
 #! /usr/bin/python3
 
 import os
+import sys
 import git
 import glob
 import json
+import socket
+import atexit
 import contextlib
 import fabric.api
 
@@ -34,6 +37,10 @@ class GitDissect:
     def config_path(self):
         return os.path.join(self.repo.git_dir, "DISSECT_CONFIG")
 
+    @property
+    def signal_path(self):
+        return os.path.join(self.repo.git_dir, "DISSECT_SIGNAL")
+
     def config(self, path):
         try:
             os.remove(self.config_path)
@@ -47,6 +54,8 @@ class GitDissect:
         @fabric.api.task
         @fabric.api.parallel
         def execute(*cmd):
+            if not cmd:
+                cmd = "git dissect signal wait".split()
             with contextlib.ExitStack() as stack:
                 stack.enter_context(fabric.api.settings(warn_only=True))
                 stack.enter_context(fabric.api.cd(self.remote_path))
@@ -105,6 +114,21 @@ class GitDissect:
         while True:
             self.step(cmd)
 
+    def signal(self, action):
+        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sock:
+            if action == "wait":
+                sock.bind(self.signal_path)
+                atexit.register(lambda: os.remove(self.signal_path))
+                retcode = ord(sock.recv(1))
+                sys.exit(retcode)
+            else:
+                sock.connect(self.signal_path)
+                retcode = {
+                    "good": 0,
+                    "bad": 1,
+                }[action]
+                sock.send(chr(retcode))
+
     def main(self, task, *args, **kw):
         try:
             getattr(self, task)(*args, **kw)
@@ -128,6 +152,8 @@ if __name__ == "__main__":
     run = subparsers.add_parser("run")
     for p in (execute, collect, step, run):
         p.add_argument("cmd", nargs="*")
+    signal = subparsers.add_parser("signal")
+    signal.add_argument("action", choices=["good", "bad", "wait"])
     args = parser.parse_args()
     task = args.__dict__.pop("subparser")
     GitDissect().main(task, **args.__dict__)
