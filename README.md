@@ -59,3 +59,4 @@ Command | Description
 * Manage the hosts configuration in `git-dissect` itself. Implement an easy way to add/remove hosts.
 * Add a proper python `setup.py` script to manage installation.
 * Allow running on the same host in multiple paths/worktrees.
+* If `git dissect collect` is interrupted after some information was collected, call `git bisect` with what we have instead of throwing everything away.
