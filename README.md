@@ -66,7 +66,10 @@ which waits for the user to invoke `git dissect signal {good|bad}` _on the host_
 to indicate whether the checked out commit is good or bad. Execution of
 `git-dissect` then continues normally as if the remote command succeeded or
 failed as indicated by the user.  
-This is equivalent to calling `git bisect {good|bad}` after running tests manually.
+This is equivalent to calling `git bisect {good|bad}` after running tests
+manually.  
+Note: Since `git dissect signal` runs _on the host_, `git-dissect` must be
+installed on it in order to use manual mode.
 
 ## Future
 
