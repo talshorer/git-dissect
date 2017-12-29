@@ -24,7 +24,7 @@ Note: It is recommended to start `git bisect` with the `--no-checkout` option wh
 
 ### Configuration
 `git-dissect` uses a JSON configuration to manage its hosts.  
-The configuration is a JSON object, where each key is of the form `"user@hostname"` and each value is of the form `/path/to/repository/on/host`.  
+The configuration is a JSON object, where each key is of the form `"user@hostname"` and each value is of the form `"/path/to/repository/on/host"`.  
 For example:
 ```
 {
