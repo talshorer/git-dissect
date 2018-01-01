@@ -2,11 +2,10 @@
 
 `git-dissect` is an alternative to `git bisect` that allows running tests on
 multiple hosts in order to bisect faster.  
-This is achieved by utilizing python's `fabric` library.  
 It was inspired by Rob Hoelz's [git-pisect](https://github.com/hoelzro/git-pisect).
 
 ## Installation
-    $ sudo pip3 install fabric3 gitpython
+    $ sudo pip3 install asyncssh gitpython
     $ wget https://raw.githubusercontent.com/talshorer/git-dissect/master/git-dissect.py
     $ chmod +x git-dissect.py
     $ # Install for the current user only
@@ -25,24 +24,32 @@ when using `git-dissect`.
 
 ### Configuration
 `git-dissect` uses a JSON configuration to manage its hosts.  
-The configuration is a JSON object, where each key is of the form
-`"user@hostname"` and each value is of the form `"/path/to/repository/on/host"`.  
-For example:
+The configuration is a JSON object, where each member represents one host.  
+It is best demonstrated with an example:
 ```
 {
-  "root@20.0.0.2": "/tmp/dissect-example",
-  "root@20.0.1.2": "/tmp/dissect-example",
-  "root@20.0.2.2": "/tmp/dissect-example",
-  "root@20.0.3.2": "/tmp/dissect-example",
-  "root@20.0.4.2": "/tmp/dissect-example",
-  "root@20.0.5.2": "/tmp/dissect-example",
-  "root@20.0.6.2": "/tmp/dissect-example",
-  "root@20.0.7.2": "/tmp/dissect-example"
+  "20.0.0.2": {
+    "user": "root",
+    "path": "/tmp/dissect-example"
+  },
+  "20.0.1.2": {
+    "user": "root",
+    "path": "/root/dissect-example"
+  },
+  "20.0.2.2": {
+    "user": "root",
+    "path": "dissect-example"
+  },
+  "20.0.3.2": {
+    "user": "root",
+    "path": "repos/dissect-example"
+  }
 }
 ```
+Paths may be absolute or relative to the user's home directory.  
 To set the configuration file, use `git dissect config`.  
-Note: In order for `fabric` to work properly, the user must be able to log in
-to the hosts via SSH using a public key.
+Note: In order for `git-dissect` to work properly, the user must be able to
+log in to the hosts via SSH using a public key.
 
 ### `git-dissect` commands:
 
