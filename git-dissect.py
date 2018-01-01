@@ -64,7 +64,7 @@ class GitDissect:
         return fabric.api.execute(execute, *cmd, hosts=self.conf.keys())
 
     def fetch(self):
-        self.execute("git fetch")
+        self.execute("git fetch".split())
 
     def checkout(self):
         bad = self.repo.commit("bisect/bad")
