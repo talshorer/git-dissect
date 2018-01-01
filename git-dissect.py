@@ -7,8 +7,8 @@ import glob
 import json
 import socket
 import atexit
-import contextlib
-import fabric.api
+import asyncio
+import asyncssh
 
 
 class GitDissect:
@@ -21,13 +21,41 @@ class GitDissect:
     class DissectDone(Exception):
         pass
 
-    @property
-    def key(self):
-        return "{}@{}".format(fabric.api.env.user, fabric.api.env.host)
+    @staticmethod
+    def _print_output(fd, host, prefix):
+        buf = os.read(fd, 0x1000)
+        if not buf:
+            loop = asyncio.get_event_loop()
+            loop.remove_reader(fd)
+            os.close(fd)
+            return
+        banner = "[{}] {}: ".format(host, prefix).encode()
+        os.write(
+            1, banner + buf.strip().replace(b"\n", b"\n" + banner) + b"\n")
 
-    @property
-    def remote_path(self):
-        return self.conf[self.key]
+    async def _run_on_one(self, host, cmd):
+        if isinstance(cmd, dict):
+            cmd = cmd[host]
+        cmd = "cd {}; {}".format(self.conf[host]["path"], cmd)
+        print("running on {}: {!r}".format(host, cmd))
+        async with asyncssh.connect(host,
+                                    username=self.conf[host]["user"]) as conn:
+            out_rfd, out_wfd = os.pipe()
+            err_rfd, err_wfd = os.pipe()
+            loop = asyncio.get_event_loop()
+            loop.add_reader(out_rfd, self._print_output, out_rfd, host, "out")
+            loop.add_reader(err_rfd, self._print_output, err_rfd, host, "err")
+            return await conn.run(
+                cmd, stdout=os.fdopen(out_wfd), stderr=os.fdopen(err_wfd))
+
+    def _run(self, cmd, hosts=None):
+        if hosts is None:
+            hosts = self.conf.keys()
+        if not hosts:
+            return {}
+        loop = asyncio.get_event_loop()
+        return dict(zip(hosts, loop.run_until_complete(asyncio.gather(*[
+            self._run_on_one(host, cmd) for host in hosts]))))
 
     @property
     def commitmap_path(self):
@@ -50,21 +78,13 @@ class GitDissect:
             path = os.path.relpath(path, self.repo.git_dir)
         os.symlink(path, self.config_path)
 
-    def execute(self, cmd):
-        @fabric.api.task
-        @fabric.api.parallel
-        def execute(*cmd):
-            if not cmd:
-                cmd = "git dissect signal wait".split()
-            with contextlib.ExitStack() as stack:
-                stack.enter_context(fabric.api.settings(warn_only=True))
-                stack.enter_context(fabric.api.cd(self.remote_path))
-                return fabric.api.run(
-                    " ".join(cmd), shell=False, shell_escape=True).return_code
-        return fabric.api.execute(execute, *cmd, hosts=self.conf.keys())
+    def execute(self, cmd, *args):
+        if not cmd:
+            cmd = "git dissect signal wait"
+        return self._run(" ".join(cmd), *args)
 
     def fetch(self):
-        self.execute("git fetch".split())
+        self._run("git fetch")
 
     def checkout(self):
         bad = self.repo.commit("bisect/bad")
@@ -80,15 +100,9 @@ class GitDissect:
             os.remove(self.commitmap_path)
         except FileNotFoundError:
             pass
-
-        @fabric.api.task
-        @fabric.api.parallel
-        def checkout(hash):
-            with fabric.api.cd(self.remote_path):
-                fabric.api.run("git checkout {}".format(commitmap[self.key]))
-
         if commitmap:
-            fabric.api.execute(checkout, commitmap, hosts=commitmap.keys())
+            self._run({host: "git checkout {}".format(sha) for
+                       host, sha in commitmap.items()}, commitmap.keys())
         json.dump(commitmap, open(self.commitmap_path, "w"))
         if not commitmap:
             raise self.DissectDone()
@@ -97,14 +111,13 @@ class GitDissect:
         commitmap = json.load(open(self.commitmap_path))
         if not commitmap:
             raise self.DissectDone()
-        retcodes = self.execute(cmd)
-        for key, sha in commitmap.items():
-            retcode = retcodes[key]
-            if retcode:
-                if self.repo.is_ancestor(sha, "bisect/bad"):
-                    self.repo.git.bisect("bad", sha)
-            else:
-                self.repo.git.bisect("good", sha)
+        results = self.execute(cmd, commitmap.keys())
+        for host, sha in commitmap.items():
+            retcode = results[host].exit_status
+            mark = "bad" if retcode else "good"
+            print("mark commit {} as {}".format(sha, mark))
+            if self.repo.is_ancestor(sha, "bisect/bad"):
+                    self.repo.git.bisect(mark, sha)
 
     def step(self, cmd):
         self.checkout()
