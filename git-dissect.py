@@ -80,7 +80,7 @@ class GitDissect:
 
     def execute(self, cmd, *args):
         if not cmd:
-            cmd = "git dissect signal wait"
+            cmd = "git dissect signal wait".split()
         return self._run(" ".join(cmd), *args)
 
     def fetch(self):
