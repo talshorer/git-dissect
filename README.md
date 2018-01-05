@@ -25,6 +25,9 @@ Note: It is recommended to start `git bisect` with the `--no-checkout` option
 when using `git-dissect`.
 
 ### Configuration
+__WARNING__: The configuration scheme is not final and will likely be moved into
+`git config` at some point to allow for easier management across multiple
+repositories.  
 `git-dissect` uses a JSON configuration to manage its hosts.  
 The configuration is a JSON object, where each member represents one host.  
 It is best demonstrated with an example:
