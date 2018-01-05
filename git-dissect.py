@@ -158,20 +158,18 @@ class GitDissect:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers(dest="subparser")
+    subparsers = parser.add_subparsers(dest="task")
     subparsers.required = True
     config = subparsers.add_parser("config")
     config.add_argument("path")
-    fetch = subparsers.add_parser("fetch")
-    checkout = subparsers.add_parser("checkout")
-    execute = subparsers.add_parser("execute")
-    collect = subparsers.add_parser("collect")
-    step = subparsers.add_parser("step")
-    run = subparsers.add_parser("run")
-    for p in (execute, collect, step, run):
+    # tasks without parameters
+    for task in ("fetch", "checkout"):
+        subparsers.add_parser(task)
+    # tasks that run a command
+    for task in ("execute", "collect", "step", "run"):
+        p = subparsers.add_parser(task)
         p.add_argument("cmd", nargs="*")
     signal = subparsers.add_parser("signal")
     signal.add_argument("action", choices=["good", "bad", "wait"])
     args = parser.parse_args()
-    task = args.__dict__.pop("subparser")
-    GitDissect().main(task, **args.__dict__)
+    GitDissect().main(**args.__dict__)
