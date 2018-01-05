@@ -90,8 +90,7 @@ class GitDissect:
         bad = self.repo.commit("bisect/bad")
         goods = [name[len("good-"):] for name in glob.glob1(
             os.path.join(self.repo.git_dir, "refs/bisect"), "good-*")]
-        revlist = [line.split()[0] for line in self.repo.git.rev_list(
-            bad, "--not", *goods, bisect_all=True).splitlines()]
+        revlist = self.repo.git.rev_list(bad, "--not", *goods).splitlines()
         hosts = self.conf.keys()
         shas = set(revlist[(len(revlist) * i) // len(hosts)] for i in range(
             len(hosts))) - set([self.repo.commit("bisect/bad").hexsha])
