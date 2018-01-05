@@ -22,22 +22,25 @@ class GitDissect:
         pass
 
     @staticmethod
-    def _print_output(fd, host, prefix):
+    def banner(host, prefix):
+        return "[{}] {}:".format(host, prefix)
+
+    @classmethod
+    def _print_output(cls, fd, host, prefix):
         buf = os.read(fd, 0x1000)
         if not buf:
             loop = asyncio.get_event_loop()
             loop.remove_reader(fd)
             os.close(fd)
             return
-        banner = "[{}] {}: ".format(host, prefix).encode()
-        os.write(
-            1, banner + buf.strip().replace(b"\n", b"\n" + banner) + b"\n")
+        banner = cls.banner(host, prefix)
+        print(banner, buf.decode().strip().replace("\n", "\n" + banner))
 
     async def _run_on_one(self, host, cmd):
         if isinstance(cmd, dict):
             cmd = cmd[host]
         cmd = "cd {}; {}".format(self.conf[host]["path"], cmd)
-        print("running on {}: {!r}".format(host, cmd))
+        print(self.banner(host, "exec"), repr(cmd))
         async with asyncssh.connect(host,
                                     username=self.conf[host]["user"]) as conn:
             out_rfd, out_wfd = os.pipe()
@@ -45,8 +48,10 @@ class GitDissect:
             loop = asyncio.get_event_loop()
             loop.add_reader(out_rfd, self._print_output, out_rfd, host, "out")
             loop.add_reader(err_rfd, self._print_output, err_rfd, host, "err")
-            return await conn.run(
+            result = await conn.run(
                 cmd, stdout=os.fdopen(out_wfd), stderr=os.fdopen(err_wfd))
+            print(self.banner(host, "ret"), result.exit_status)
+            return result
 
     def _run(self, cmd, hosts=None):
         if hosts is None:
