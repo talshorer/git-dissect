@@ -92,7 +92,8 @@ class GitDissect:
             os.path.join(self.repo.git_dir, "refs/bisect"), "good-*")]
         revlist = self.repo.git.rev_list(bad, "--not", *goods).splitlines()
         hosts = self.conf.keys()
-        shas = set(revlist[(len(revlist) * i) // len(hosts)] for i in range(
+        shas = set(revlist[(len(revlist) * (i + 1)) //
+                           (len(hosts) + 1)] for i in range(
             len(hosts))) - set([self.repo.commit("bisect/bad").hexsha])
         commitmap = dict(zip(sorted(hosts), sorted(shas)))
         try:
