@@ -6,12 +6,14 @@ It was inspired by Rob Hoelz's [git-pisect](https://github.com/hoelzro/git-pisec
 
 ## Installation
     $ sudo pip3 install asyncssh gitpython
-    $ wget https://raw.githubusercontent.com/talshorer/git-dissect/master/git-dissect.py
-    $ chmod +x git-dissect.py
+    $ git clone https://github.com/talshorer/git-dissect.git
+    $ cd git-dissect
     $ # Install for the current user only
-    $ git config --global alias.dissect '!'$(realpath git-dissect.py)
+    $ ./setup.py install --user
+    $ git config --global alias.dissect '!'python3 -m git-dissect
     $ # Install for everyone using the system
-    $ sudo git config --system alias.dissect '!'$(realpath git-dissect.py)
+    $ sudo ./setup.py install
+    $ sudo git config --system alias.dissect '!'python3 -m git-dissect
 
 ## Usage
 Start as you would start a normal bisect:
@@ -82,6 +84,5 @@ installed on it in order to use manual mode.
 
 * Better handling of error conditions.
 * Manage the hosts configuration in `git-dissect` itself. Implement an easy way to add/remove hosts.
-* Add a proper python `setup.py` script to manage installation.
 * Allow running on the same host in multiple paths/worktrees.
 * If `git dissect collect` is interrupted after some information was collected, call `git bisect` with what we have instead of throwing everything away.
