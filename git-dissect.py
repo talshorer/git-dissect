@@ -5,6 +5,7 @@ import sys
 import git
 import glob
 import json
+import shutil
 import socket
 import atexit
 import asyncio
@@ -63,8 +64,11 @@ class GitDissect:
             self._run_on_one(host, cmd) for host in hosts]))))
 
     @property
-    def commitmap_path(self):
-        return os.path.join(self.repo.git_dir, "DISSECT_COMMITMAP")
+    def refs_dir(self):
+        return os.path.join(self.repo.git_dir, "refs/dissect")
+
+    def host_ref_path(self, host):
+        return os.path.join(self.refs_dir, host)
 
     @property
     def config_path(self):
@@ -102,22 +106,25 @@ class GitDissect:
             len(hosts))) - set([self.repo.commit("bisect/bad").hexsha])
         commitmap = dict(zip(sorted(hosts), sorted(shas)))
         try:
-            os.remove(self.commitmap_path)
+            shutil.rmtree(self.refs_dir)
         except FileNotFoundError:
             pass
         if commitmap:
             self._run({host: "git checkout {}".format(sha) for
                        host, sha in commitmap.items()}, commitmap.keys())
-        json.dump(commitmap, open(self.commitmap_path, "w"))
+        os.mkdir(self.refs_dir)
+        for host, sha in commitmap.items():
+            with open(self.host_ref_path(host), "w") as f:
+                f.write("{}\n".format(sha))
         if not commitmap:
             raise self.DissectDone()
 
     def collect(self, cmd):
-        commitmap = json.load(open(self.commitmap_path))
-        if not commitmap:
-            raise self.DissectDone()
-        results = self.execute(cmd, commitmap.keys())
-        for host, sha in commitmap.items():
+        hosts = os.listdir(self.refs_dir)
+        results = self.execute(cmd, hosts)
+        for host in hosts:
+            with open(self.host_ref_path(host), "r") as f:
+                sha = f.read().strip()
             retcode = results[host].exit_status
             mark = "bad" if retcode else "good"
             print("mark commit {} as {}".format(sha, mark))

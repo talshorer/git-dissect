@@ -83,6 +83,13 @@ manually.
 Note: Since `git dissect signal` runs _on the host_, `git-dissect` must be
 installed on it in order to use manual mode.
 
+Alternatively, if you don't want to install `git-dissect` on the hosts, you can
+run `git bisect {good|bad} dissect/<host>` to manually mark the commit checked
+out on `<host>` as good or bad.  
+Note that this does not remove the host from the list of hosts that
+`git dissect collect` runs on. To achieve that, run
+`git update-ref -d refs/dissect/<host>`.
+
 ## Future
 
 * Better handling of error conditions.
