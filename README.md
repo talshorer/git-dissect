@@ -10,10 +10,10 @@ It was inspired by Rob Hoelz's [git-pisect](https://github.com/hoelzro/git-pisec
     $ cd git-dissect
     $ # Install for the current user only
     $ ./setup.py install --user
-    $ git config --global alias.dissect '!'python3 -m git-dissect
+    $ git config --global alias.dissect '!python3 -m git-dissect'
     $ # Install for everyone using the system
     $ sudo ./setup.py install
-    $ sudo git config --system alias.dissect '!'python3 -m git-dissect
+    $ sudo git config --system alias.dissect '!python3 -m git-dissect'
 
 ## Usage
 Start as you would start a normal bisect:
