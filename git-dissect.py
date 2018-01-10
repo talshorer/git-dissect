@@ -10,6 +10,7 @@ import socket
 import atexit
 import asyncio
 import asyncssh
+import contextlib
 
 
 class GitDissect:
@@ -78,6 +79,13 @@ class GitDissect:
     def signal_path(self):
         return os.path.join(self.repo.git_dir, "DISSECT_SIGNAL")
 
+    @contextlib.contextmanager
+    def bisect_log_append(self, prefix, sha):
+        with open(os.path.join(self.repo.git_dir, "BISECT_LOG"), "a") as f:
+            f.write("# {}: [{}] {}\n".format(
+                prefix, sha, self.repo.commit(sha).summary))
+            yield f
+
     def config(self, path):
         try:
             os.remove(self.config_path)
@@ -117,6 +125,9 @@ class GitDissect:
             with open(self.host_ref_path(host), "w") as f:
                 f.write("{}\n".format(sha))
         if not commitmap:
+            with self.bisect_log_append("first bad commit",
+                                        self.repo.commit("bisect/bad")):
+                pass
             raise self.DissectDone()
 
     def collect(self, cmd):
@@ -126,10 +137,21 @@ class GitDissect:
             with open(self.host_ref_path(host), "r") as f:
                 sha = f.read().strip()
             retcode = results[host].exit_status
-            mark = "bad" if retcode else "good"
-            print("mark commit {} as {}".format(sha, mark))
-            if self.repo.is_ancestor(sha, "bisect/bad"):
-                    self.repo.git.bisect(mark, sha)
+            bad = "bisect/bad"
+            if self.repo.is_ancestor(sha, bad):
+                if retcode:
+                    ref = bad
+                    mark = "bad"
+                else:
+                    ref = "bisect/good-{}".format(sha)
+                    mark = "good"
+                print("update ref {} to {}".format(ref, sha))
+                self.repo.git.update_ref("refs/{}".format(ref), sha)
+                with self.bisect_log_append(mark, sha) as f:
+                    f.write("git bisect {} {}\n".format(mark, sha))
+            else:
+                print("{} is no longer an ancestor of {}. skipping it".format(
+                    sha, bad))
 
     def step(self, cmd):
         self.checkout()
