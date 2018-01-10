@@ -93,6 +93,10 @@ Note that this does not remove the host from the list of hosts that
 ## Future
 
 * Better handling of error conditions.
-* Manage the hosts configuration in `git-dissect` itself. Implement an easy way to add/remove hosts.
+* Manage the hosts configuration in `git-dissect` itself. Implement an easy way
+to add/remove hosts.
 * Allow running on the same host in multiple paths/worktrees.
-* If `git dissect collect` is interrupted after some information was collected, call `git bisect` with what we have instead of throwing everything away.
+* If `git dissect collect` is interrupted after some information was collected,
+call `git bisect` with what we have instead of throwing everything away.
+* Improve efficiency of `git dissect {step|run}` by running multiple commands
+in one ssh session instead of establishing a session for each command.
