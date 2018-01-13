@@ -10,6 +10,7 @@ import socket
 import atexit
 import asyncio
 import asyncssh
+import functools
 import contextlib
 
 
@@ -19,6 +20,7 @@ class GitDissect:
         self.repo = git.Repo()
         if os.path.exists(self.config_path):
             self.conf = json.load(open(self.config_path))
+        self.connections = {}
 
     class DissectDone(Exception):
         pass
@@ -43,26 +45,53 @@ class GitDissect:
             cmd = cmd[host]
         cmd = "cd {}; {}".format(self.conf[host]["path"], cmd)
         print(self.banner(host, "exec"), repr(cmd))
-        async with asyncssh.connect(host,
-                                    username=self.conf[host]["user"]) as conn:
-            out_rfd, out_wfd = os.pipe()
-            err_rfd, err_wfd = os.pipe()
-            loop = asyncio.get_event_loop()
-            loop.add_reader(out_rfd, self._print_output, out_rfd, host, "out")
-            loop.add_reader(err_rfd, self._print_output, err_rfd, host, "err")
-            result = await conn.run(
-                cmd, stdout=os.fdopen(out_wfd), stderr=os.fdopen(err_wfd))
-            print(self.banner(host, "ret"), result.exit_status)
-            return result
+        out_rfd, out_wfd = os.pipe()
+        err_rfd, err_wfd = os.pipe()
+        loop = asyncio.get_event_loop()
+        loop.add_reader(out_rfd, self._print_output, out_rfd, host, "out")
+        loop.add_reader(err_rfd, self._print_output, err_rfd, host, "err")
+        result = await self.connections[host].run(
+            cmd, stdout=os.fdopen(out_wfd), stderr=os.fdopen(err_wfd))
+        print(self.banner(host, "ret"), result.exit_status)
+        return result
+
+    @staticmethod
+    async def _gather(hosts, coro):
+        values = await asyncio.gather(*[coro(host) for host in hosts])
+        return dict(zip(hosts, values))
 
     def _run(self, cmd, hosts=None):
         if hosts is None:
             hosts = self.conf.keys()
         if not hosts:
             return {}
+        self._connect(set(hosts) - set(self.connections.keys()))
         loop = asyncio.get_event_loop()
-        return dict(zip(hosts, loop.run_until_complete(asyncio.gather(*[
-            self._run_on_one(host, cmd) for host in hosts]))))
+        return loop.run_until_complete(self._gather(
+            hosts, functools.partial(self._run_on_one, cmd=cmd)))
+
+    async def _connect_one(self, host):
+        conn, _ = await asyncssh.create_connection(
+            None, host, username=self.conf[host]["user"])
+        return conn
+
+    def _connect(self, hosts):
+        loop = asyncio.get_event_loop()
+        self.connections.update(loop.run_until_complete(self._gather(
+            list(hosts), self._connect_one)))
+
+    def __enter__(self):
+        return self
+
+    async def _disconnect_one(self, host):
+        self.connections[host].close()
+        await self.connections[host].wait_closed()
+
+    def __exit__(self, *args):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self._gather(
+            self.connections.keys(), self._disconnect_one))
+        self.connections = {}
 
     @property
     def refs_dir(self):
@@ -178,7 +207,8 @@ class GitDissect:
 
     def main(self, task, *args, **kw):
         try:
-            getattr(self, task)(*args, **kw)
+            with self:
+                getattr(self, task)(*args, **kw)
         except self.DissectDone:
             print("{} is the first bad commit".format(
                 self.repo.commit("bisect/bad")))
