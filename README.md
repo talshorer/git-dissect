@@ -59,9 +59,9 @@ It is best demonstrated with an example:
 ```
 Paths may be absolute or relative to the user's home directory.  
 Not specifying `user` defaults to the current user.  
-Not specifying `hostname` defaults to the host's key.  
-It is possible to specify the same machine multiple types with different keys
-and paths.
+Not specifying `hostname` defaults to the host's JSON key.  
+It is possible to specify the same machine multiple types with different JSON
+keys and paths.
 
 To set the configuration file, use `git dissect config`.  
 Note: In order for `git-dissect` to work properly, the user must be able to
