@@ -8,6 +8,7 @@ import json
 import shutil
 import socket
 import atexit
+import getpass
 import asyncio
 import asyncssh
 import functools
@@ -70,9 +71,21 @@ class GitDissect:
         return loop.run_until_complete(self._gather(
             hosts, functools.partial(self._run_on_one, cmd=cmd)))
 
+    def _get_conf_value(self, host, key, default):
+        value = self.conf[host].get(key, None)
+        if value is None:
+            value = default
+        return value
+
+    def _username(self, host):
+        return self._get_conf_value(host, "user", getpass.getuser())
+
+    def _hostname(self, host):
+        return self._get_conf_value(host, "hostname", host)
+
     async def _connect_one(self, host):
         conn, _ = await asyncssh.create_connection(
-            None, host, username=self.conf[host]["user"])
+            None, self._hostname(host), username=self._username(host))
         return conn
 
     def _connect(self, hosts):

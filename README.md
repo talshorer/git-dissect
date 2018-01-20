@@ -37,21 +37,32 @@ It is best demonstrated with an example:
     "user": "root",
     "path": "/tmp/dissect-example"
   },
-  "20.0.1.2": {
+  "horse": {
+    "hostname": "20.0.1.2",
     "user": "root",
     "path": "/root/dissect-example"
   },
-  "20.0.2.2": {
-    "user": "root",
+  "zebra": {
     "path": "dissect-example"
   },
-  "20.0.3.2": {
+  "giraffe1": {
+    "hostname": "giraffe",
     "user": "root",
-    "path": "repos/dissect-example"
+    "path": "repos/dissect-example1"
+  },
+  "giraffe2": {
+    "hostname": "giraffe",
+    "user": "root",
+    "path": "repos/dissect-example2"
   }
 }
 ```
 Paths may be absolute or relative to the user's home directory.  
+Not specifying `user` defaults to the current user.  
+Not specifying `hostname` defaults to the host's key.  
+It is possible to specify the same machine multiple types with different keys
+and paths.
+
 To set the configuration file, use `git dissect config`.  
 Note: In order for `git-dissect` to work properly, the user must be able to
 log in to the hosts via SSH using a public key.
@@ -93,8 +104,8 @@ Note that this does not remove the host from the list of hosts that
 ## Future
 
 * Better handling of error conditions.
-* Manage the hosts configuration in `git-dissect` itself. Implement an easy way
-to add/remove hosts.
-* Allow running on the same host in multiple paths/worktrees.
+* Move configuration into `gitconfig`.
+  * Implement an easy way to add/remove hosts.
+  * Fill in missing configuration values from `sshconfig`.
 * If `git dissect collect` is interrupted after some information was collected,
 call `git bisect` with what we have instead of throwing everything away.
