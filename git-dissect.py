@@ -39,7 +39,7 @@ class GitDissect:
             os.close(fd)
             return
         banner = cls.banner(host, prefix)
-        print(banner, buf.decode().strip().replace("\n", "\n" + banner))
+        print(banner, buf.decode().strip().replace("\n", "\n" + banner + " "))
 
     async def _run_on_one(self, host, cmd):
         if isinstance(cmd, dict):
