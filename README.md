@@ -5,15 +5,12 @@ multiple hosts in order to bisect faster.
 It was inspired by Rob Hoelz's [git-pisect](https://github.com/hoelzro/git-pisect).
 
 ## Installation
-    $ sudo pip3 install asyncssh gitpython
     $ git clone https://github.com/talshorer/git-dissect.git
     $ cd git-dissect
     $ # Install for the current user only
     $ ./setup.py install --user
-    $ git config --global alias.dissect '!python3 -m git-dissect'
     $ # Install for everyone using the system
     $ sudo ./setup.py install
-    $ sudo git config --system alias.dissect '!python3 -m git-dissect'
 
 ## Usage
 Start as you would start a normal bisect:
@@ -120,7 +117,8 @@ Note that this does not remove the host from the list of hosts that
 ## Future
 
 * Better handling of error conditions.
-* Add subcommands for easier host management
+* Add subcommands for easier host management.
 * Fill in missing configuration values from `sshconfig`.
 * If `git dissect collect` is interrupted after some information was collected,
 call `git bisect` with what we have instead of throwing everything away.
+* Upload to PyPI and update installation accordingly.

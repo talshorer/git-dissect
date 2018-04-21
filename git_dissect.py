@@ -243,7 +243,7 @@ class GitDissect:
                 self.repo.commit("bisect/bad")))
 
 
-if __name__ == "__main__":
+def _main():
     import argparse
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="task")
@@ -259,3 +259,7 @@ if __name__ == "__main__":
     signal.add_argument("action", choices=["good", "bad", "wait"])
     args = parser.parse_args()
     GitDissect().main(**args.__dict__)
+
+
+if __name__ == "__main__":
+    _main()
