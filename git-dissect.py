@@ -4,7 +4,6 @@ import os
 import sys
 import git
 import glob
-import json
 import shutil
 import socket
 import atexit
@@ -19,12 +18,28 @@ class GitDissect:
 
     def __init__(self):
         self.repo = git.Repo()
-        if os.path.exists(self.config_path):
-            self.conf = json.load(open(self.config_path))
+        self.conf = self._read_conf()
         self.connections = {}
 
     class DissectDone(Exception):
         pass
+
+    def _read_conf(self):
+        config_reader = self.repo.config_reader()
+        conf = {}
+        section_start = "dissect \""
+        for section in config_reader.sections():
+            if not section.startswith(section_start):
+                continue
+            if not config_reader.getboolean(section, "enabled", fallback=True):
+                continue
+            host = section[len(section_start):-1]
+            options = config_reader.options(section)
+            if "path" not in options:
+                continue
+            conf[host] = {option: config_reader.get_value(section, option) for
+                          option in options if not option.startswith("_")}
+        return conf
 
     @staticmethod
     def banner(host, prefix):
@@ -83,9 +98,23 @@ class GitDissect:
     def _hostname(self, host):
         return self._get_conf_value(host, "hostname", host)
 
+    def _port(self, host):
+        return self._get_conf_value(host, "port", 22)
+
+    def _known_hosts(self, host):
+        if self._get_conf_value(host, "useknownhosts", True):
+            return ()
+        else:
+            return None
+
     async def _connect_one(self, host):
         conn, _ = await asyncssh.create_connection(
-            None, self._hostname(host), username=self._username(host))
+            client_factory=None,
+            host=self._hostname(host),
+            port=self._port(host),
+            username=self._username(host),
+            known_hosts=self._known_hosts(host),
+        )
         return conn
 
     def _connect(self, hosts):
@@ -114,10 +143,6 @@ class GitDissect:
         return os.path.join(self.refs_dir, host)
 
     @property
-    def config_path(self):
-        return os.path.join(self.repo.git_dir, "DISSECT_CONFIG")
-
-    @property
     def signal_path(self):
         return os.path.join(self.repo.git_dir, "DISSECT_SIGNAL")
 
@@ -127,15 +152,6 @@ class GitDissect:
             f.write("# {}: [{}] {}\n".format(
                 prefix, sha, self.repo.commit(sha).summary))
             yield f
-
-    def config(self, path):
-        try:
-            os.remove(self.config_path)
-        except FileNotFoundError:
-            pass
-        if not os.path.isabs(path):
-            path = os.path.relpath(path, self.repo.git_dir)
-        os.symlink(path, self.config_path)
 
     def execute(self, cmd, *args):
         if not cmd:
@@ -232,8 +248,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="task")
     subparsers.required = True
-    config = subparsers.add_parser("config")
-    config.add_argument("path")
     # tasks without parameters
     for task in ("fetch", "checkout"):
         subparsers.add_parser(task)

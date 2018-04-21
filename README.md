@@ -25,53 +25,69 @@ Note: It is recommended to start `git bisect` with the `--no-checkout` option
 when using `git-dissect`.
 
 ### Configuration
-__WARNING__: The configuration scheme is not final and will likely be moved into
-`git config` at some point to allow for easier management across multiple
-repositories.  
-`git-dissect` uses a JSON configuration to manage its hosts.  
-The configuration is a JSON object, where each member represents one host.  
-It is best demonstrated with an example:
-```
-{
-  "20.0.0.2": {
-    "user": "root",
-    "path": "/tmp/dissect-example"
-  },
-  "horse": {
-    "hostname": "20.0.1.2",
-    "user": "root",
-    "path": "/root/dissect-example"
-  },
-  "zebra": {
-    "path": "dissect-example"
-  },
-  "giraffe1": {
-    "hostname": "giraffe",
-    "user": "root",
-    "path": "repos/dissect-example1"
-  },
-  "giraffe2": {
-    "hostname": "giraffe",
-    "user": "root",
-    "path": "repos/dissect-example2"
-  }
-}
-```
-Paths may be absolute or relative to the user's home directory.  
-Not specifying `user` defaults to the current user.  
-Not specifying `hostname` defaults to the host's JSON key.  
-It is possible to specify the same machine multiple types with different JSON
-keys and paths.
+`git-dissect` uses git's configuration to describe its hosts.
+Each host is described by a subsection called `dissect.<host>`, containing the
+following values:
 
-To set the configuration file, use `git dissect config`.  
+Value | Description | Mandatory | Default
+--- | --- | --- | ---
+`enabled` | Whether to include this host when performnig operations | no | true
+`path` | Path to the repository on the host. Can be absolute or relative to the user's home directory | yes | -
+`user` | User to log in with | no | Current user
+`hostname` | Alternative hostname/address to connect to (similar to `sshconfig`) | no | Subsection's name
+`port` | SSH port used to connect to the host | no | 22
+`useknownhosts` | Use SSH known_hosts mechanism. **Disabling this can pose a security risk** | no | true
+
+`git-dissect` will use all hosts with a `path` value.  
+It is possible to specify the same machine multiple types with different
+subsection names and paths.  
+It is recommended to set `hostname` and `user` globally (see example) for easier
+management of multiple repositories using the same hosts.  
 Note: In order for `git-dissect` to work properly, the user must be able to
 log in to the hosts via SSH using a public key.
 
+#### Examples
+##### Adding a new host
+    $ git config --global dissect.bravo.user tal
+    $ git config --global dissect.bravo.hostname 20.0.1.2
+    $ git config dissect.bravo.path /home/tal/dissect-example
+##### Removing a host
+    $ git config --unset dissect.bravo.path
+*Note: you might want to disable a host instead of removing it*
+#### Disabling a host
+    $ git config --bool dissect.bravo.enabled false
+#### Enabling a host
+    $ git config --bool dissect.bravo.enabled true
+##### Complete configuration
+```
+[disect "20.0.0.2"]
+	path = /tmp/dissect-example
+	user = root
+	port = 7400
+	useknownhosts = false
+[disect "alpha"]
+	path = dissect-example
+	useknownhosts = true
+[disect "bravo"]
+	enabled = true
+	path = /home/tal/dissect-example
+	user = tal
+	hostname = 20.0.1.2
+	port = 7401
+[disect "charlie1"]
+	enabled = false
+	path = repos/dissect-example1
+	user = tals
+	hostname = charlie
+[disect "charlie2"]
+	path = repos/dissect-example2
+	user = tals
+	hostname = charlie
+```
 ### `git-dissect` commands:
 
 Command | Description
 --- | ---
-`git dissect config <path-to-json>` | Set `<path-to-json>` as the configuration file.
 `git dissect execute <cmd>` | Run `<cmd>` on all hosts. The remote repository path is used as the working directory.
 `git dissect fetch` | Run `git fetch` on all hosts.
 `git dissect checkout` | Choose a commit for each host and run `git checkout` on all hosts.
@@ -104,8 +120,7 @@ Note that this does not remove the host from the list of hosts that
 ## Future
 
 * Better handling of error conditions.
-* Move configuration into `gitconfig`.
-  * Implement an easy way to add/remove hosts.
-  * Fill in missing configuration values from `sshconfig`.
+* Add subcommands for easier host management
+* Fill in missing configuration values from `sshconfig`.
 * If `git dissect collect` is interrupted after some information was collected,
 call `git bisect` with what we have instead of throwing everything away.
