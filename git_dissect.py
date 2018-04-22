@@ -102,7 +102,7 @@ class GitDissect:
         return self._get_conf_value(host, "port", 22)
 
     def _known_hosts(self, host):
-        if self._get_conf_value(host, "useknownhosts", True):
+        if self._get_conf_value(host, "stricthostkeychecking", True):
             return ()
         else:
             return None

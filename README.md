@@ -33,7 +33,7 @@ Value | Description | Mandatory | Default
 `user` | User to log in with | no | Current user
 `hostname` | Alternative hostname/address to connect to (similar to `sshconfig`) | no | Subsection's name
 `port` | SSH port used to connect to the host | no | 22
-`useknownhosts` | Use SSH known_hosts mechanism. **Disabling this can pose a security risk** | no | true
+`stricthostkeychecking` | Use SSH known_hosts mechanism. **Disabling this can pose a security risk** | no | true
 
 `git-dissect` will use all hosts with a `path` value.  
 It is possible to specify the same machine multiple types with different
@@ -61,10 +61,10 @@ log in to the hosts via SSH using a public key.
 	path = /tmp/dissect-example
 	user = root
 	port = 7400
-	useknownhosts = false
+	stricthostkeychecking = false
 [disect "alpha"]
 	path = dissect-example
-	useknownhosts = true
+	stricthostkeychecking = true
 [disect "bravo"]
 	enabled = true
 	path = /home/tal/dissect-example
