@@ -31,32 +31,42 @@ Value | Description | Mandatory | Default
 `enabled` | Whether to include this host when performnig operations | no | true
 `path` | Path to the repository on the host. Can be absolute or relative to the user's home directory | yes | -
 `user` | User to log in with | no | Current user
-`hostname` | Alternative hostname/address to connect to (similar to `sshconfig`) | no | Subsection's name
+`hostname` | Alternative hostname/address to connect to (similar to `ssh_config`) | no | Subsection's name
 `port` | SSH port used to connect to the host | no | 22
 `stricthostkeychecking` | Use SSH known_hosts mechanism. **Disabling this can pose a security risk** | no | true
 
 `git-dissect` will use all hosts with a `path` value.  
 It is possible to specify the same machine multiple types with different
 subsection names and paths.  
-It is recommended to set `hostname` and `user` globally (see example) for easier
-management of multiple repositories using the same hosts.  
+Missing values will be taken from SSH's default configuration files before
+resorting to the default value for a given option. To disable reading SSH's
+configuration, set `dissect.usesshconfig` to `false` in `gitconfig`
+(see example).  
+It is recommended to set options other than `path` and `enabled` globally
+(see example) for easier management of multiple repositories using the same
+hosts.  
 Note: In order for `git-dissect` to work properly, the user must be able to
 log in to the hosts via SSH using a public key.
 
 #### Examples
-##### Adding a new host
+##### Add a new host
     $ git config --global dissect.bravo.user tal
     $ git config --global dissect.bravo.hostname 20.0.1.2
+    $ git config --global dissect.bravo.port 7401
     $ git config dissect.bravo.path /home/tal/dissect-example
-##### Removing a host
+##### Remove a host
     $ git config --unset dissect.bravo.path
 *Note: you might want to disable a host instead of removing it*
-#### Disabling a host
+#### Disable a host
     $ git config --bool dissect.bravo.enabled false
-#### Enabling a host
+#### Enable a host
     $ git config --bool dissect.bravo.enabled true
+#### Disable reading SSH's configuration
+    $ git config --bool dissect.usesshconfig false
 ##### Complete configuration
 ```
+[disect]
+	usesshconfig = true
 [disect "20.0.0.2"]
 	path = /tmp/dissect-example
 	user = root
@@ -118,7 +128,7 @@ Note that this does not remove the host from the list of hosts that
 
 * Better handling of error conditions.
 * Add subcommands for easier host management.
-* Fill in missing configuration values from `sshconfig`.
+* Support proxy command for connection.
 * If `git dissect collect` is interrupted after some information was collected,
 call `git bisect` with what we have instead of throwing everything away.
 * Upload to PyPI and update installation accordingly.

@@ -9,6 +9,7 @@ import socket
 import atexit
 import getpass
 import asyncio
+import argparse
 import asyncssh
 import functools
 import contextlib
@@ -28,6 +29,18 @@ class GitDissect:
         config_reader = self.repo.config_reader()
         conf = {}
         section_start = "dissect \""
+        if config_reader.getboolean("dissect", "usesshconfig", fallback=True):
+            import paramiko
+            self.sshconfig = paramiko.SSHConfig()
+            for path in ("/etc/ssh/ssh_config", "~/.ssh/config"):
+                try:
+                    with open(os.path.expanduser(path), "r") as f:
+                        self.sshconfig.parse(f)
+                except FileNotFoundError:
+                    pass
+        else:
+            self.sshconfig = argparse.Namespace()
+            self.sshconfig.lookup = lambda host: {}
         for section in config_reader.sections():
             if not section.startswith(section_start):
                 continue
@@ -86,11 +99,44 @@ class GitDissect:
         return loop.run_until_complete(self._gather(
             hosts, functools.partial(self._run_on_one, cmd=cmd)))
 
+    _DEFAULT_CONF_VALUE = object()
+
+    def _get_conf_value_gitconfig(self, host, key, default):
+        return self.conf[host].get(key, self._DEFAULT_CONF_VALUE)
+
+    def _get_conf_value_sshconfig(self, host, key, default):
+        value = self.sshconfig.lookup(host).get(key, self._DEFAULT_CONF_VALUE)
+        if value is self._DEFAULT_CONF_VALUE:
+            return value
+        if isinstance(default, bool):
+            if value == "yes":
+                return True
+            elif value == "no":
+                return False
+            else:
+                raise ValueError(
+                    "Invalid boolean value {}.{} in sshconfig: {}".format(
+                        host, key, value))
+        elif isinstance(default, int):
+            return int(value)
+        elif isinstance(default, str):
+            return value
+        raise ValueError("Can't convert value {} to type {}".format(
+            value, type(default)))
+
+    def _get_conf_value_default(self, host, key, default):
+        return default
+
     def _get_conf_value(self, host, key, default):
-        value = self.conf[host].get(key, None)
-        if value is None:
-            value = default
-        return value
+        for method in (
+            self._get_conf_value_gitconfig,
+            self._get_conf_value_sshconfig,
+            self._get_conf_value_default,
+        ):
+            value = method(host, key, default)
+            if value is not self._DEFAULT_CONF_VALUE:
+                return value
+        raise ValueError("Host {} missing value for {}".format(host, key))
 
     def _username(self, host):
         return self._get_conf_value(host, "user", getpass.getuser())
@@ -244,7 +290,6 @@ class GitDissect:
 
 
 def _main():
-    import argparse
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="task")
     subparsers.required = True
