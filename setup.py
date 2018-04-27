@@ -13,5 +13,9 @@ setup(
     entry_points=dict(console_scripts=[
         "git-dissect = git_dissect:_main",
     ]),
-    install_requires=["gitpython", "asyncssh"],
+    install_requires=[
+        "gitpython",
+        "asyncssh",
+        "paramiko",
+    ],
 )
