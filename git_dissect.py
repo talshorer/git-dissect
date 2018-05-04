@@ -15,6 +15,28 @@ import functools
 import contextlib
 
 
+class ProxyCommandTunnel:
+    def __init__(self, cmd):
+        self.cmd = cmd
+
+    @staticmethod
+    def socketpair():
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            s.listen(1)
+            c = socket.create_connection(s.getsockname())
+            a, _ = s.accept()
+            return c, a
+
+    async def create_connection(self, session_factory, host, port):
+        stdio, tunnel = self.socketpair()
+        subprocess = await asyncio.create_subprocess_shell(
+            self.cmd, stdin=stdio, stdout=stdio)
+        loop = asyncio.get_event_loop()
+        loop.create_task(subprocess.wait())
+        return await loop.create_connection(session_factory, sock=tunnel)
+
+
 class GitDissect:
 
     def __init__(self):
@@ -153,13 +175,30 @@ class GitDissect:
         else:
             return None
 
+    def _tunnel(self, host, port, username):
+        proxycommand = self._get_conf_value(host, "proxycommand", "none")
+        if proxycommand.lower() == "none":
+            return None
+        return ProxyCommandTunnel(functools.reduce(
+            lambda a, b: a.replace(*b),
+            (
+                ("%h", host),
+                ("%p", str(port)),
+                ("%r", username),
+            ),
+            proxycommand,
+        ))
+
     async def _connect_one(self, host):
+        port = self._port(host)
+        username = self._username(host)
         conn, _ = await asyncssh.create_connection(
             client_factory=None,
             host=self._hostname(host),
-            port=self._port(host),
-            username=self._username(host),
+            port=port,
+            username=username,
             known_hosts=self._known_hosts(host),
+            tunnel=self._tunnel(host, port, username),
         )
         return conn
 

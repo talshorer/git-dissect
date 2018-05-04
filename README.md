@@ -34,6 +34,7 @@ Value | Description | Mandatory | Default
 `hostname` | Alternative hostname/address to connect to (similar to `ssh_config`) | no | Subsection's name
 `port` | SSH port used to connect to the host | no | 22
 `stricthostkeychecking` | Use SSH known_hosts mechanism. **Disabling this can pose a security risk** | no | true
+`proxycommand` | Proxy command to use instead of TCP connection. The special value "none" is the same as not providing a proxy command (similar to `ssh_config`). | no | "none"
 
 `git-dissect` will use all hosts with a `path` value.  
 It is possible to specify the same machine multiple types with different
@@ -90,6 +91,10 @@ log in to the hosts via SSH using a public key.
 	path = repos/dissect-example2
 	user = tals
 	hostname = charlie
+[dissect "delta"]
+	path = /dissect-example
+	port 6500
+	proxycommand = nc localohst %p
 ```
 ### `git-dissect` commands:
 
@@ -128,7 +133,6 @@ Note that this does not remove the host from the list of hosts that
 
 * Better handling of error conditions.
 * Add subcommands for easier host management.
-* Support proxy command for connection.
 * If `git dissect collect` is interrupted after some information was collected,
 call `git bisect` with what we have instead of throwing everything away.
 * Upload to PyPI and update installation accordingly.
