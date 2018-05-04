@@ -65,28 +65,28 @@ log in to the hosts via SSH using a public key.
     $ git config --bool dissect.usesshconfig false
 ##### Complete configuration
 ```
-[disect]
+[dissect]
 	usesshconfig = true
-[disect "20.0.0.2"]
+[dissect "20.0.0.2"]
 	path = /tmp/dissect-example
 	user = root
 	port = 7400
 	stricthostkeychecking = false
-[disect "alpha"]
+[dissect "alpha"]
 	path = dissect-example
 	stricthostkeychecking = true
-[disect "bravo"]
+[dissect "bravo"]
 	enabled = true
 	path = /home/tal/dissect-example
 	user = tal
 	hostname = 20.0.1.2
 	port = 7401
-[disect "charlie1"]
+[dissect "charlie1"]
 	enabled = false
 	path = repos/dissect-example1
 	user = tals
 	hostname = charlie
-[disect "charlie2"]
+[dissect "charlie2"]
 	path = repos/dissect-example2
 	user = tals
 	hostname = charlie
