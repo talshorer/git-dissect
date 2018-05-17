@@ -58,11 +58,11 @@ log in to the hosts via SSH using a public key.
 ##### Remove a host
     $ git config --unset dissect.bravo.path
 *Note: you might want to disable a host instead of removing it*
-#### Disable a host
+##### Disable a host
     $ git config --bool dissect.bravo.enabled false
-#### Enable a host
+##### Enable a host
     $ git config --bool dissect.bravo.enabled true
-#### Disable reading SSH's configuration
+##### Disable reading SSH's configuration
     $ git config --bool dissect.usesshconfig false
 ##### Complete configuration
 ```
